@@ -1,0 +1,74 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>NutriBuddy</title>
+<style>
+:root{--g:#2ecc71;--y:#ffc93c;--r:#ff6b6b;--b:#4dabf7;--p:#b57bff;--ink:#3a3560}
+*{box-sizing:border-box}body{margin:0;font-family:"Comic Sans MS","Chalkboard SE","Trebuchet MS",sans-serif;color:var(--ink);background:linear-gradient(160deg,#c9f0ff,#fff3c4 55%,#ffd6e8);min-height:100vh;padding:env(safe-area-inset-top) 14px 24px}
+.mascot{font-size:72px;text-align:center;animation:fl 2.4s ease-in-out infinite}@keyframes fl{50%{transform:translateY(-12px) rotate(6deg)}}
+h1{text-align:center;margin:0 0 8px;font-size:30px;color:var(--p)}
+.card{background:#fff;border-radius:26px;padding:18px;margin:12px auto;max-width:520px;box-shadow:0 8px 0 #0001;animation:pop .45s}
+@keyframes pop{from{transform:scale(.8);opacity:0}}
+input,select{width:100%;font:inherit;font-size:18px;padding:12px;border:3px solid #e3dcff;border-radius:16px;margin:6px 0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}.chip{padding:10px 14px;border-radius:30px;background:#f1ecff;border:3px solid transparent;font-size:16px}
+.chip.on{background:var(--p);color:#fff;transform:scale(1.07)}
+.btn{display:block;width:100%;font:inherit;font-size:20px;font-weight:700;color:#fff;background:var(--g);border:0;border-radius:22px;padding:15px;margin-top:12px;box-shadow:0 6px 0 #1e9c53}
+.btn:active{transform:translateY(5px);box-shadow:0 1px 0 #1e9c53}.btn.b{background:var(--b);box-shadow:0 6px 0 #2f84c4}
+.hide{display:none}.verdict{border-radius:22px;padding:14px;text-align:center;font-size:22px;font-weight:700;color:#fff}
+.v0{background:var(--g)}.v1{background:#f5a623}.v2{background:var(--r);animation:wob .5s 2}@keyframes wob{25%{transform:rotate(-3deg)}75%{transform:rotate(3deg)}}
+.ring{width:110px;height:110px;border-radius:50%;margin:10px auto;display:grid;place-items:center;font-size:26px;font-weight:700}
+.ring i{background:#fff;width:80px;height:80px;border-radius:50%;display:grid;place-items:center;font-style:normal}
+.bar{height:16px;background:#eee;border-radius:10px;overflow:hidden;margin:3px 0 10px}.bar b{display:block;height:100%;border-radius:10px;transition:width 1s}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;text-align:center}.grid div{background:#f7f5ff;border-radius:16px;padding:8px;font-size:14px}
+.grid span{display:block;font-size:22px;font-weight:700}.stars{text-align:right;font-size:18px}
+</style></head><body>
+<div class="mascot" id="m">🐻</div><h1>NutriBuddy</h1><div class="stars" id="st"></div>
+
+<div class="card hide" id="reg"><h2>Hi friend! 👋</h2>
+<input id="nm" placeholder="Your name"><select id="ag"></select><select id="lg"></select><input id="em" type="email" placeholder="Parent email (weekly report)"><input id="pn" type="password" inputmode="numeric" maxlength="4" placeholder="Parent PIN (4 numbers)">
+<p>Anything your tummy needs care with?</p>
+<div class="chips" id="cc"></div><button class="btn" onclick="save()">Let's go! 🚀</button></div>
+
+<div class="card hide" id="home"><div id="hi"></div>
+<label class="btn b" style="text-align:center">📸 Scan my food<input id="cam" type="file" accept="image/*" capture="environment" hidden></label>
+<input id="tx" placeholder="…or type it: banana, chips, rice" style="margin-top:14px">
+<button class="btn" onclick="go(null,$('#tx').value)">Check it! 🔍</button><button class="btn" style="background:#888;box-shadow:0 6px 0 #555" onclick="parent()">👨‍👩‍👧 Parents</button></div>
+<div id="out"></div>
+
+<script>
+const API="https://script.google.com/macros/s/AKfycbysoplZJicVrQLpnwqCxNOztEEHzMCca5uFzbZl_6a2W5DX9epSvvk5Oxp15rRkqH7PrA/exec"; // set after deploying Code.gs
+const $=s=>document.querySelector(s),esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const CON=[['diabetes','🩸 Diabetes'],['nuts','🥜 Nut allergy'],['dairy','🥛 Milk allergy'],['gluten','🌾 Gluten'],['other','💬 Other']];
+let P=JSON.parse(localStorage.nb||'null'),sel=new Set(),stars=+localStorage.stars||0;
+$('#ag').innerHTML='<option value="">How old are you?</option>'+[...Array(15)].map((_,i)=>`<option>${i+3}</option>`).join('');
+const LG=[['English','en','en-US'],['Français','fr','fr-FR'],['Español','es','es-ES'],['Português','pt','pt-PT'],['العربية','ar','ar-SA'],['Kiswahili','sw','sw-KE'],['Hausa','ha','ha'],['Yorùbá','yo','yo'],['Igbo','ig','ig']];
+$('#lg').innerHTML=LG.map(l=>`<option value="${l[1]}">${l[0]}</option>`).join('');let LAST;
+$('#cc').innerHTML=CON.map(([k,l])=>`<div class="chip" data-k="${k}">${l}</div>`).join('');
+$('#cc').onclick=e=>{const k=e.target.dataset.k;if(!k)return;sel.has(k)?sel.delete(k):sel.add(k);e.target.classList.toggle('on')};
+function boot(){$('#reg').classList.toggle('hide',!!P);$('#home').classList.toggle('hide',!P);$('#st').textContent='⭐ '+stars;if(P)$('#hi').innerHTML=`<h2>Hello ${esc(P.name)}! What are you eating? 😋</h2>`}
+function save(){const n=$('#nm').value.trim(),a=+$('#ag').value;if(!n||!a)return alert('Tell me your name and age 😊');
+const pin=$('#pn').value,em=$('#em').value.trim();if(!/^\d{4}$/.test(pin)||!em)return alert('Parent: add an email and a 4-number PIN 🔒');
+P={id:'k'+Date.now(),name:n,age:a,c:[...sel],lang:$('#lg').value,email:em,pin};localStorage.nb=JSON.stringify(P);post({action:'register',id:P.id,name:n,age:a,conditions:P.c,email:em,lang:LG.find(l=>l[1]===P.lang)[0]}).catch(()=>{});boot()}
+const post=b=>fetch(API,{method:'POST',headers:{'Content-Type':'text/plain'},body:JSON.stringify(b)}).then(r=>r.json());
+$('#cam').onchange=e=>{const f=e.target.files[0];if(!f)return;const im=new Image();im.onload=()=>{const s=Math.min(1,800/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);go(c.toDataURL('image/jpeg',.7).split(',')[1],'')};im.src=URL.createObjectURL(f)};
+const LOCAL={apple:[95,19,'medium',80],banana:[105,14,'medium',75],chips:[300,1,'high',20],soda:[140,39,'high',5],cake:[350,35,'high',20],rice:[200,0,'medium',60],egg:[80,0,'low',70],milk:[120,12,'medium',65],chocolate:[220,24,'high',15],pizza:[285,4,'high',45],juice:[110,22,'medium',30],water:[0,0,'low',100],bread:[90,2,'medium',50]};
+function offline(t){const k=Object.keys(LOCAL).find(k=>t.toLowerCase().includes(k));if(!k)return null;const[c,s,e,b]=LOCAL[k];return{food:k,type:'food',texture:'-',calories:c,sugar_g:s,energy:e,balance_pct:b,protein_g:0,carbs_g:0,fat_g:0,fiber_g:0,allergens:/cake|pizza|bread/.test(k)?['gluten']:/milk|chocolate/.test(k)?['milk']:[],choking_risk:false,tip:'(Offline guess) Connect to the internet for a smarter check!',fun_fact:''}}
+async function go(img,txt){if(!img&&!txt.trim())return;$('#m').textContent='🤔';$('#out').innerHTML='<div class="card" style="text-align:center;font-size:20px">Munching the numbers… 🍪</div>';
+let r;try{r=await post({action:'analyze',id:P.id,image:img,text:txt,age:P.age,conditions:P.c,lang:LG.find(l=>l[1]===P.lang)[0],hour:new Date().getHours()});if(r.error)throw 0}catch(e){r=offline(txt)}
+if(!r){$('#m').textContent='🐻';return $('#out').innerHTML='<div class="card">Oops! I need internet to look at this one 📡</div>'}show(r)}
+function slot(h){return h<6?['😴','Sleepy time','sleep']:h<10?['🌅','Breakfast time','meal']:h<12?['🍎','Snack time','snack']:h<15?['☀️','Lunch time','meal']:h<17?['🍪','Snack time','snack']:h<20?['🌙','Dinner time','meal']:['😴','Almost bedtime','sleep']}
+function verdict(r){const[,nm,k]=slot(new Date().getHours()),w=[];let l=0;const up=(n,t)=>{l=Math.max(l,n);w.push(t)},al=(r.allergens||[]).join(' ').toLowerCase(),c=P.c;
+if(c.includes('nuts')&&/nut/.test(al))up(2,'Has nuts – not safe for you!');if(c.includes('dairy')&&/milk|dairy|lactose|cheese/.test(al))up(2,'Has milk – not safe for you!');if(c.includes('gluten')&&/gluten|wheat/.test(al))up(2,'Has gluten – not for you!');
+if(c.includes('diabetes')&&r.sugar_g>8)up(2,'Lots of sugar – ask a grown-up first!');if(c.includes('other')&&r.sugar_g>20)up(1,'Ask a grown-up first.');
+if(k==='sleep'&&(r.sugar_g>10||r.energy==='high'))up(1,'Bedtime is near – this may keep you awake.');if(k==='snack'&&r.calories>250)up(1,'Big for a snack – share half!');
+if(P.age<5&&r.choking_risk)up(1,'Ask a grown-up to cut it small.');if(!w.length)w.push(`Perfect for ${nm.toLowerCase()}!`);return{l,w,nm}}
+function show(r){const v=verdict(r);LAST=[r,v];const col=r.balance_pct>=70?'#2ecc71':r.balance_pct>=40?'#ffc93c':'#ff6b6b',sc=r.sugar_g>15?'#ff6b6b':r.sugar_g>6?'#ffc93c':'#2ecc71',ec={low:30,medium:60,high:95}[r.energy]||50;
+$('#m').textContent=['🥳','😮','🛑'][v.l];if(v.l==0&&r.balance_pct>=70){stars++;localStorage.stars=stars;$('#st').textContent='⭐ '+stars}
+$('#out').innerHTML=`<div class="card"><h2>${esc(r.food)} ${v.l?'':'😋'}</h2><div class="verdict v${v.l}">${['✅ Yes, eat it!','⚠️ Be careful','🛑 Not now'][v.l]}<div style="font-size:15px">${v.w.map(esc).join('<br>')}</div></div>
+<div class="ring" style="background:conic-gradient(${col} ${r.balance_pct*3.6}deg,#eee 0)"><i>${+r.balance_pct}%</i></div><div style="text-align:center">Balanced-diet score</div>
+<p>⚡ Energy</p><div class="bar"><b style="width:${ec}%;background:var(--y)"></b></div><p>🍬 Sugar: ${+r.sugar_g} g</p><div class="bar"><b style="width:${Math.min(100,r.sugar_g*3)}%;background:${sc}"></b></div>
+<div class="grid"><div>🔥<span>${+r.calories}</span>calories</div><div>🍞<span>${+r.carbs_g}g</span>carbs</div><div>💪<span>${+r.protein_g}g</span>protein</div><div>🥑<span>${+r.fat_g}g</span>fat</div><div>🥦<span>${+r.fiber_g}g</span>fibre</div><div>✋<span style="font-size:16px">${esc(r.texture)}</span>texture</div></div>
+<p>💡 ${esc(r.tip)}</p><p>🎈 ${esc(r.fun_fact)}</p>${r.swap?`<p>🔄 Try instead: ${esc(r.swap)}</p>`:''}<button class="btn b" onclick="say()">🔊 Read to me</button><small>Helper only – not medical advice. Ask a grown-up or doctor.</small></div>`;scrollTo({top:999,behavior:'smooth'})}
+function say(){const[r,v]=LAST;speechSynthesis.cancel();const t=P.lang==='en'?`${r.food}. ${['Yes, you can eat it!','Be careful.','Not now.'][v.l]} ${v.w.join(' ')} ${r.tip}`:`${r.food}. ${r.tip} ${r.fun_fact||''}`,u=new SpeechSynthesisUtterance(t);u.lang=LG.find(l=>l[1]===P.lang)[2];u.rate=.9;u.pitch=1.2;speechSynthesis.speak(u)}
+function parent(){if(prompt('Parent PIN')!==P.pin)return alert('Wrong PIN');$('#out').innerHTML=`<div class="card"><h2>👨‍👩‍👧 Parent corner</h2><button class="btn b" onclick="rep()">📧 Email weekly report now</button><button class="btn" style="background:#888;box-shadow:0 6px 0 #555" onclick="if(confirm('Reset profile?')){localStorage.removeItem('nb');location.reload()}">✏️ Edit profile</button><small>A report also goes to ${esc(P.email)} every Monday.</small></div>`}
+function rep(){post({action:'report',id:P.id}).then(r=>alert(r.ok?'Sent! 📧':'Could not send')).catch(()=>alert('Needs internet'))}
+boot();
+</script></body></html>
